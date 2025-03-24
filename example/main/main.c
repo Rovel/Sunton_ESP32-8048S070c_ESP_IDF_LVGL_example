@@ -1,13 +1,13 @@
 #include "esp_check.h"
-
 #include "bsp.h"
-
 #include "esp_lvgl_port.h"
-
 #include "driver/i2c_master.h"
-
 #include "lv_examples.h"
 #include "lv_demos.h"
+#include "home_tab.h"
+#include "info_tab.h"
+#include "settings_tab.h"
+#include "wifi_manager.h"
 
 /* LCD settings */
 #define APP_LCD_LVGL_FULL_REFRESH           (0)
@@ -179,6 +179,36 @@ static esp_err_t app_lvgl_init(esp_lcd_panel_handle_t lp, esp_lcd_touch_handle_t
     return ESP_OK;
 }
 
+static void display_ascii_image(void)
+{
+    const char *ascii_art =
+        "  ____  \n"
+        " / __ \\ \n"
+        "| |  | |\n"
+        "| |  | |\n"
+        "| |__| |\n"
+        " \\____/ \n";
+
+    lv_obj_t *label = lv_label_create(lv_scr_act());
+    lv_label_set_text(label, ascii_art);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+}
+
+static void create_tabview(void)
+{
+    lv_obj_t *tabview = lv_tabview_create(lv_scr_act());
+
+    /* Create tabs */
+    lv_obj_t *tab_home = lv_tabview_add_tab(tabview, "Home");
+    lv_obj_t *tab_info = lv_tabview_add_tab(tabview, "Info");
+    lv_obj_t *tab_settings = lv_tabview_add_tab(tabview, "Settings");
+
+    /* Initialize each tab */
+    home_tab_init(tab_home);
+    info_tab_init(tab_info);
+    settings_tab_init(tab_settings);
+}
+
 void app_main(void)
 {
     ESP_ERROR_CHECK(app_lcd_init(&lcd_panel));
@@ -195,7 +225,20 @@ void app_main(void)
     ESP_ERROR_CHECK(gpio_config(&bk_light));
     gpio_set_level(BSP_LCD_GPIO_BK_LIGHT, BSP_LCD_BK_LIGHT_ON_LEVEL);
 
+    // Initialize Wi-Fi and Bluetooth
+    // ESP_ERROR_CHECK(wifi_manager_init());
+    // ESP_ERROR_CHECK(bluetooth_manager_init());
+
+    // Initialize the first LVGL view (e.g., Home Screen)
     lvgl_port_lock(0);
-    lv_demo_widgets();
+    display_ascii_image();
+    vTaskDelay(pdMS_TO_TICKS(2000)); // Display ASCII art for 2 seconds
+    lv_obj_clean(lv_scr_act());      // Clear the screen
+
+    create_tabview(); // Create the tabview with three screens
+
+    // home_view_init();
+    // lv_demo_widgets();
+    // lv_demo_music();
     lvgl_port_unlock();
 }
